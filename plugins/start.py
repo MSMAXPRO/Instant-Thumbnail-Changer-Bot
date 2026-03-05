@@ -1,9 +1,8 @@
 from aiogram import Router, types, Bot
 from aiogram.filters import Command
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, URLInputFile
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from config import CHANNEL_URL, DEV_URL, LOG_CHANNEL
 from database import add_user, is_banned, get_user
-import time
 
 router = Router()
 
@@ -22,24 +21,21 @@ def small_caps(text: str) -> str:
 
 @router.message(Command("start"))
 async def start_cmd(message: types.Message, bot: Bot):
-    """Handle /start command with specific image and buttons."""
+    """Handle /start command with direct image URL and buttons."""
     user_id = message.from_user.id
     username = message.from_user.username
     first_name = message.from_user.first_name
 
-    # Check if banned
+    # 1. Check if user is banned
     if await is_banned(user_id):
         await message.answer(small_caps("You are banned from using this bot."))
         return
 
-    # Check if new user
+    # 2. Database & Logging Logic
     existing_user = await get_user(user_id)
     is_new_user = existing_user is None
-
-    # Add/update user in database
     await add_user(user_id, username, first_name)
 
-    # Log new user to log channel
     if is_new_user and LOG_CHANNEL:
         try:
             await bot.send_message(
@@ -53,7 +49,7 @@ async def start_cmd(message: types.Message, bot: Bot):
         except Exception:
             pass
 
-    # Welcome text in small caps with blockquote
+    # 3. Premium Welcome Text
     welcome_text = (
         f"<b>{small_caps('Welcome to Msmaxpro Thumbnail Bot!')}</b>\n\n"
         f"<blockquote>{small_caps('I am the fastest bot to add custom thumbnails to your videos instantly.')}</blockquote>\n\n"
@@ -65,7 +61,7 @@ async def start_cmd(message: types.Message, bot: Bot):
         f"</blockquote>"
     )
 
-    # Buttons (Elite White Style Emojis)
+    # 4. Buttons (White Style)
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text="⚪ Join Channel", url=CHANNEL_URL),
@@ -74,22 +70,21 @@ async def start_cmd(message: types.Message, bot: Bot):
         [InlineKeyboardButton(text="⚙️ Settings", callback_data="settings")]
     ])
 
-    # Direct image link provided by user
+    # 5. Sending Image (Direct URL method for reliability)
     IMAGE_URL = "https://files.catbox.moe/yx82fq.jpg"
 
     try:
-        # Sending the specific photo with caption
-        photo = URLInputFile(IMAGE_URL)
+        # Direct string URL is more robust in aiogram v3 for remote files
         await bot.send_photo(
             chat_id=message.chat.id,
-            photo=photo,
+            photo=IMAGE_URL,
             caption=welcome_text,
             parse_mode="HTML",
             reply_markup=keyboard
         )
     except Exception as e:
-        # Fallback if image fails (Optional logging of error)
-        print(f"Error sending start photo: {e}")
+        # Fallback to Text if Telegram can't fetch the photo
+        print(f"Photo sending failed: {e}")
         await message.answer(
             welcome_text,
             parse_mode="HTML",
