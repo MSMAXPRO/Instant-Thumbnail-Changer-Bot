@@ -1,25 +1,9 @@
-# CantarellaBots
-# Don't Remove Credit
-# Telegram Channel @CantarellaBots
-#Supoort group @rexbotschat
 from aiogram import Router, types, Bot
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, URLInputFile
-# CantarellaBots
-# Don't Remove Credit
-# Telegram Channel @CantarellaBots
-#Supoort group @rexbotschat
 from config import CHANNEL_URL, DEV_URL, get_random_pic, LOG_CHANNEL
 from database import add_user, is_banned, get_user
-# CantarellaBots
-# Don't Remove Credit
-# Telegram Channel @CantarellaBots
-#Supoort group @rexbotschat
 router = Router()
-# CantarellaBots
-# Don't Remove Credit
-# Telegram Channel @CantarellaBots
-#Supoort group @rexbotschat
 
 def small_caps(text: str) -> str:
     """Convert text to small caps unicode."""
@@ -34,10 +18,6 @@ def small_caps(text: str) -> str:
             result += char
     return result
 
-# CantarellaBots
-# Don't Remove Credit
-# Telegram Channel @CantarellaBots
-#Supoort group @rexbotschat
 @router.message(Command("start"))
 async def start_cmd(message: types.Message, bot: Bot):
     """Handle /start command with image and buttons."""
@@ -73,7 +53,7 @@ async def start_cmd(message: types.Message, bot: Bot):
     
     # Welcome text in small caps with blockquote
     welcome_text = (
-        f"<b>{small_caps('Welcome to Thumbnail Bot!')}</b>\n\n"
+        f"<b>{small_caps('Welcome to Msmaxpro Thumbnail Bot!')}</b>\n\n"
         f"<blockquote>{small_caps('Send me a video and I will add your custom thumbnail to it.')}</blockquote>\n\n"
         f"<b>{small_caps('How to use:')}</b>\n"
         f"<blockquote>"
@@ -116,10 +96,3 @@ async def start_cmd(message: types.Message, bot: Bot):
         parse_mode="HTML",
         reply_markup=keyboard
     )
-# CantarellaBots
-# Don't Remove Credit
-# Telegram Channel @CantarellaBots
-#Supoort group @rexbotschat# CantarellaBots
-# Don't Remove Credit
-# Telegram Channel @CantarellaBots
-#Supoort group @rexbotschat
