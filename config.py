@@ -7,6 +7,9 @@ API_TOKEN = os.environ.get("API_TOKEN", "")
 # Owner/Admin
 OWNER_ID = int(os.environ.get("OWNER_ID", ""))
 
+MONGO_URL = os.environ.get("MONGO_URL", "")
+DB_NAME = "thumbnail_bot"
+
 # UI URLs - Multiple images that rotate randomly
 # Use DIRECT image URLs (https://i.ibb.co/...) not page URLs (https://ibb.co/...)
 START_PICS = [
