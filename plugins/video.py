@@ -1,11 +1,24 @@
-# CantarellaBots | Updated by MSMAXPRO
+# CantarellaBots
+# Don't Remove Credit
+# Telegram Channel @CantarellaBots
+#Supoort group @rexbotschat
 from aiogram import Router, types, F, Bot
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+# CantarellaBots
+# Don't Remove Credit
+# Telegram Channel @CantarellaBots
+#Supoort group @rexbotschat
 from config import LOG_CHANNEL
-from database import get_thumbnail, increment_usage, is_banned, add_user, get_user
-import logging
-
+from database import get_thumbnail, increment_usage, is_banned, add_user
+# CantarellaBots
+# Don't Remove Credit
+# Telegram Channel @CantarellaBots
+#Supoort group @rexbotschat
 router = Router()
+# CantarellaBots
+# Don't Remove Credit
+# Telegram Channel @CantarellaBots
+#Supoort group @rexbotschat
 
 def small_caps(text: str) -> str:
     """Convert text to small caps unicode."""
@@ -19,103 +32,77 @@ def small_caps(text: str) -> str:
         else:
             result += char
     return result
+# CantarellaBots
+# Don't Remove Credit
+# Telegram Channel @CantarellaBots
+#Supoort group @rexbotschat
 
 @router.message(F.video)
 async def handle_video(message: types.Message, bot: Bot):
-    """Handle incoming video with Premium/Free limit logic."""
+    """Handle incoming video and send it back with user's thumbnail as cover."""
     user_id = message.from_user.id
     username = message.from_user.username
     first_name = message.from_user.first_name
     
-    # 1. Check if banned
+    # Check if banned
     if await is_banned(user_id):
         await message.answer(small_caps("You are banned from using this bot."))
         return
     
-    # 2. Add/Fetch User Data
+    # Add/update user
     await add_user(user_id, username, first_name)
-    user_data = await get_user(user_id)
     
-    # 3. Premium & Limit Logic (Ghost OS Style)
-    is_premium = user_data.get("is_premium", False) if user_data else False
-    used_count = user_data.get("videos_used", 0) if user_data else 0
+    video = message.video
     
-    # Keyboard for responses
+    # Keep ORIGINAL caption - no modification
+    caption = message.caption or ""
+    
+    # Get user's thumbnail
+    thumb_file_id = await get_thumbnail(user_id)
+    
+    # Build keyboard
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="⚙️ Settings", callback_data="settings")]
     ])
-
-    # Check Limit for Free Users (40 limit)
-    if not is_premium and used_count >= 40:
-        limit_reached_text = (
-            f"⚠️ <b>{small_caps('Daily Limit Reached!')}</b>\n"
-            f"▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n\n"
-            f"👤 <b>{small_caps('Operator:')}</b> <code>{first_name}</code>\n"
-            f"📊 <b>{small_caps('Usage:')}</b> <code>{used_count}/40</code>\n\n"
-            f"<blockquote>{small_caps('Your free daily limit is over. Upgrade to Premium for unlimited processing!')}</blockquote>\n\n"
-            f"💎 {small_caps('Use /plan to see premium offers.')}"
-        )
-        await message.answer(limit_reached_text, parse_mode="HTML", reply_markup=keyboard)
-        return
-
-    # 4. Processing Video
-    video = message.video
-    caption = message.caption or ""
-    thumb_file_id = await get_thumbnail(user_id)
     
     if thumb_file_id:
-        # Status Message
-        status_msg = await message.answer(f"⚡ <b>{small_caps('Injecting Thumbnail...')}</b>", parse_mode="HTML")
-
-        try:
-            # Send video with custom cover (Using thumbnail parameter for aiogram v3)
-            await bot.send_video(
-                chat_id=message.chat.id,
-                video=video.file_id,
-                caption=caption,
-                thumbnail=thumb_file_id,
-                width=video.width,
-                height=video.height,
-                duration=video.duration,
-                reply_markup=keyboard
-            )
-            
-            # Success: Increment usage only if sent successfully
-            await increment_usage(user_id)
-            await status_msg.delete()
-
-        except Exception as e:
-            logging.error(f"Processing Error: {e}")
-            # Fallback if thumbnail is invalid
-            await status_msg.edit_text(f"⚠️ {small_caps('Thumbnail invalid. Sending original...')}")
-            await bot.send_video(
-                chat_id=message.chat.id,
-                video=video.file_id,
-                caption=caption,
-                reply_markup=keyboard
-            )
+        # Increment usage count
+        await increment_usage(user_id)
         
-        # Log to log channel
+        # Send video with custom cover
+        await bot.send_video(
+            chat_id=message.chat.id,
+            video=video.file_id,
+            caption=caption,
+            cover=thumb_file_id,
+            reply_markup=keyboard
+        )
+        
+        # Log video to log channel
         if LOG_CHANNEL:
             try:
-                acc_type = "💎 ᴘʀᴇᴍɪᴜᴍ" if is_premium else "🆓 ғʀᴇᴇ"
                 await bot.send_message(
                     chat_id=LOG_CHANNEL,
-                    text=f"📹 <b>ᴠɪᴅᴇᴏ ᴘʀᴏᴄᴇssᴇᴅ</b>\n"
-                         f"▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
-                         f"👤 ᴜsᴇʀ: {first_name} (@{username or 'N/A'})\n"
-                         f"🆔 ɪᴅ: <code>{user_id}</code>\n"
-                         f"🔑 ᴛʏᴘᴇ: {acc_type}\n"
-                         f"📝 ᴄᴀᴘᴛɪᴏɴ: {caption[:30] + '...' if len(caption) > 30 else caption or 'None'}",
+                    text=f"📹 <b>ᴠɪᴅᴇᴏ ᴘʀᴏᴄᴇssᴇᴅ</b>\n\n"
+                         f"🆔 <code>{user_id}</code>\n"
+                         f"👤 {first_name} (@{username or 'N/A'})\n"
+                         f"📝 {caption[:50] + '...' if len(caption) > 50 else caption or 'No caption'}",
                     parse_mode="HTML"
                 )
             except Exception:
                 pass
     else:
-        # No thumbnail set warning
+        # No thumbnail set - send warning
         await message.answer(
             f"<b>⚠️ {small_caps('No thumbnail set!')}</b>\n\n"
-            f"<blockquote>{small_caps('Please set a thumbnail first in settings to process videos.')}</blockquote>",
+            f"<blockquote>{small_caps('Please set a thumbnail first using Settings.')}</blockquote>",
             parse_mode="HTML",
             reply_markup=keyboard
         )
+# CantarellaBots
+# Don't Remove Credit
+# Telegram Channel @CantarellaBots
+#Supoort group @rexbotschat# CantarellaBots
+# Don't Remove Credit
+# Telegram Channel @CantarellaBots
+#Supoort group @rexbotschat
