@@ -1,5 +1,3 @@
-import psutil
-import time
 from aiogram import Router, types, Bot
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
@@ -9,119 +7,86 @@ from database import add_user, is_banned, get_user
 router = Router()
 
 def small_caps(text: str) -> str:
-    """Convert text to small caps unicode."""
-    normal = "abcdefghijklmnopqrstuvwxyz"
-    small = "ᴀʙᴄᴅᴇғɢʜɪᴊᴋʟᴍɴᴏᴘǫʀsᴛᴜᴠᴡxʏᴢ"
-    result = ""
-    for char in text:
-        if char.lower() in normal:
-            idx = normal.index(char.lower())
-            result += small[idx]
-        else:
-            result += char
-    return result
+    """Convert text to small caps unicode."""
+    normal = "abcdefghijklmnopqrstuvwxyz"
+    small = "ᴀʙᴄᴅᴇғɢʜɪᴊᴋʟᴍɴᴏᴘǫʀsᴛᴜᴠᴡxʏᴢ"
+    result = ""
+    for char in text:
+        if char.lower() in normal:
+            idx = normal.index(char.lower())
+            result += small[idx]
+        else:
+            result += char
+    return result
 
 @router.message(Command("start"))
 async def start_cmd(message: types.Message, bot: Bot):
-    # --- 1. System Metrics & Latency ---
-    start_time = time.perf_counter()
-    user_id = message.from_user.id
-    username = message.from_user.username
-    first_name = message.from_user.first_name
+    """Handle /start command with direct image URL and buttons."""
+    user_id = message.from_user.id
+    username = message.from_user.username
+    first_name = message.from_user.first_name
 
-    # Check Ban Status
-    if await is_banned(user_id):
-        await message.answer(small_caps("You are banned from using this bot."))
-        return
+    # 1. Check if user is banned
+    if await is_banned(user_id):
+        await message.answer(small_caps("You are banned from using this bot."))
+        return
 
-    # Database Logic (User add/fetch)
-    await add_user(user_id, username, first_name)
-    user_data = await get_user(user_id)
+    # 2. Database & Logging Logic
+    existing_user = await get_user(user_id)
+    is_new_user = existing_user is None
+    await add_user(user_id, username, first_name)
 
-    # Dynamic Metrics Calculation
-    try:
-        cpu_load = psutil.cpu_percent()
-    except:
-        cpu_load = "N/A"
-    
-    end_time = time.perf_counter()
-    latency = round((end_time - start_time) * 1000, 2)
+    if is_new_user and LOG_CHANNEL:
+        try:
+            await bot.send_message(
+                chat_id=LOG_CHANNEL,
+                text=f"👤 <b>ɴᴇᴡ ᴜsᴇʀ</b>\n\n"
+                     f"🆔 <code>{user_id}</code>\n"
+                     f"👤 {first_name}\n"
+                     f"🔗 @{username or 'N/A'}",
+                parse_mode="HTML"
+            )
+        except Exception:
+            pass
 
-    # --- 2. Live Status Logic (Ghost OS Style) ---
-    # Database se status fetch karo (Free vs Premium)
-    is_premium = user_data.get("is_premium", False) if user_data else False
-    expiry = user_data.get("expiry_date", "N/A") if user_data else "N/A"
-    used = user_data.get("videos_used", 0) if user_data else 0 # Yahan update hoga 
+    # 3. Premium Welcome Text
+    welcome_text = (
+        f"<b>{small_caps('Welcome to Msmaxpro Thumbnail Bot!')}</b>\n\n"
+        f"<blockquote>{small_caps('I am the fastest bot to add custom thumbnails to your videos instantly.')}</blockquote>\n\n"
+        f"<b>{small_caps('How to use:')}</b>\n"
+        f"<blockquote>"
+        f"1️ {small_caps('Set your thumbnail in Settings')}\n"
+        f"2️ {small_caps('Send any video file')}\n"
+        f"3️ {small_caps('Receive your processed video!')}"
+        f"</blockquote>"
+    )
 
-    if is_premium:
-        access_level = "PREMIUM 👑"
-        limit_val = "Unlimited ♾️"
-        expiry_val = expiry
-    else:
-        access_level = "FREE USER"
-        limit_val = f"{used}/40 📊" # Har start par updated value dikhegi
-        expiry_val = "N/A"
+    # 4. Buttons (White Style)
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="⚪ Join Channel", url=CHANNEL_URL),
+            InlineKeyboardButton(text="⚪ Developer", url=DEV_URL)
+        ],
+        [InlineKeyboardButton(text="⚙️ Settings", callback_data="settings")]
+    ])
 
-    # --- 3. Hybrid UI Text Construction ---
-    hybrid_text = (
-        f"🖥️ <b>{small_caps('MSMAXPRO THUMBNAIL ENGINE v2.0')}</b>\n"
-        f"▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n\n"
-        f"📊 <b>{small_caps('System Metrics:')}</b>\n"
-        f"┣ ⚡ {small_caps('Status:')} <b>Online & Fast</b>\n"
-        f"┣ 🟢 {small_caps('Server Load:')} <b>{cpu_load}%</b>\n"
-        f"┗ 📶 {small_caps('Latency:')} <b>{latency}ms</b>\n\n"
-        f"👤 <b>{small_caps('Operator Details:')}</b>\n"
-        f"┣ 🆔 {small_caps('Identity:')} <code>{first_name}</code>\n"
-        f"┣ 🔑 {small_caps('Access Level:')} <b>{access_level}</b>\n"
-        f"┣ ⏳ {small_caps('Expires In:')} <b>{expiry_val}</b>\n"
-        f"┗ 🎬 {small_caps('Daily Limit:')} <b>{limit_val}</b>\n\n"
-        f"📖 <b>{small_caps('How to use:')}</b>\n"
-        f"1️⃣ {small_caps('Set your thumbnail in /settings')} 🖼️\n"
-        f"2️⃣ {small_caps('Send any')} 🎬 {small_caps('Video file')}\n"
-        f"3️⃣ {small_caps('Receive your processed video!')}\n\n"
-        f"🛠️ <b>{small_caps('Available Modules:')}</b>\n"
-        f"• /start - {small_caps('Restart Interface')}\n"
-        f"• /settings - {small_caps('Thumbnail Config')}\n"
-        f"• /plan - {small_caps('Upgrade Access')} 💎\n\n"
-        f"▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
-        f"👇 <b>{small_caps('Choose an option below:')}</b>"
-    )
+    # 5. Sending Image (Direct URL method for reliability)
+    IMAGE_URL = "https://files.catbox.moe/yx82fq.jpg"
 
-    # --- 4. Hybrid Buttons (Image 1 Style) ---
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [
-            InlineKeyboardButton(text="⚪ Join Channel", url=CHANNEL_URL),
-            InlineKeyboardButton(text="⚪ Developer", url=DEV_URL)
-        ],
-        [InlineKeyboardButton(text="⚙️ Settings", callback_data="settings")]
-    ])
-
-    # Direct URL for reliability
-    IMAGE_URL = "https://files.catbox.moe/yx82fq.jpg"
-
-    try:
-        await bot.send_photo(
-            chat_id=message.chat.id,
-            photo=IMAGE_URL,
-            caption=hybrid_text,
-            parse_mode="HTML",
-            reply_markup=keyboard
-        )
-    except Exception as e:
-        # Fallback to text if photo fails
-        await message.answer(
-            hybrid_text,
-            parse_mode="HTML",
-            reply_markup=keyboard
-        )
-
-    # --- 5. Log New User ---
-    if LOG_CHANNEL and (user_data is None):
-        try:
-            await bot.send_message(
-                chat_id=LOG_CHANNEL,
-                text=f"👤 <b>ɴᴇᴡ ᴜsᴇʀ</b>\n\n🆔 <code>{user_id}</code>\n👤 {first_name}\n🔗 @{username or 'N/A'}",
-                parse_mode="HTML"
-            )
-        except:
-            pass
+    try:
+        # Direct string URL is more robust in aiogram v3 for remote files
+        await bot.send_photo(
+            chat_id=message.chat.id,
+            photo=IMAGE_URL,
+            caption=welcome_text,
+            parse_mode="HTML",
+            reply_markup=keyboard
+        )
+    except Exception as e:
+        # Fallback to Text if Telegram can't fetch the photo
+        print(f"Photo sending failed: {e}")
+        await message.answer(
+            welcome_text,
+            parse_mode="HTML",
+            reply_markup=keyboard
+        )    give me complete updated code
