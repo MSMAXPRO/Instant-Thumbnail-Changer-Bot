@@ -47,20 +47,11 @@ async def start_cmd(message: types.Message, bot: Bot):
     end_time = time.perf_counter()
     latency = round((end_time - start_time) * 1000, 2)
 
-    # Log New User (Agar naya hai toh)
-    # Note: is_new_user logic yahan database pe depend karega
-    if LOG_CHANNEL:
-        try:
-            # Short Log logic
-            pass 
-        except Exception:
-            pass
-
-    # --- 2. User Status Logic (Ghost OS Style) ---
-    # Database se status uthao (is_premium, expiry, used_count)
+    # --- 2. Live Status Logic (Ghost OS Style) ---
+    # Database se status fetch karo (Free vs Premium)
     is_premium = user_data.get("is_premium", False) if user_data else False
     expiry = user_data.get("expiry_date", "N/A") if user_data else "N/A"
-    used = user_data.get("videos_used", 0) if user_data else 0
+    used = user_data.get("videos_used", 0) if user_data else 0 # Yahan update hoga 
 
     if is_premium:
         access_level = "PREMIUM 👑"
@@ -68,7 +59,7 @@ async def start_cmd(message: types.Message, bot: Bot):
         expiry_val = expiry
     else:
         access_level = "FREE USER"
-        limit_val = f"{used}/40 📊"
+        limit_val = f"{used}/40 📊" # Har start par updated value dikhegi
         expiry_val = "N/A"
 
     # --- 3. Hybrid UI Text Construction ---
@@ -123,3 +114,14 @@ async def start_cmd(message: types.Message, bot: Bot):
             parse_mode="HTML",
             reply_markup=keyboard
         )
+
+    # --- 5. Log New User ---
+    if LOG_CHANNEL and (user_data is None):
+        try:
+            await bot.send_message(
+                chat_id=LOG_CHANNEL,
+                text=f"👤 <b>ɴᴇᴡ ᴜsᴇʀ</b>\n\n🆔 <code>{user_id}</code>\n👤 {first_name}\n🔗 @{username or 'N/A'}",
+                parse_mode="HTML"
+            )
+        except:
+            pass
