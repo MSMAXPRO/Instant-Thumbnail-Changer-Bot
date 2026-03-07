@@ -1,9 +1,24 @@
+# CantarellaBots
+# Don't Remove Credit
+# Telegram Channel @CantarellaBots
+#Supoort group @rexbotschat
 from aiogram import Router, types, F, Bot
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+# CantarellaBots
+# Don't Remove Credit
+# Telegram Channel @CantarellaBots
+#Supoort group @rexbotschat
 from config import LOG_CHANNEL
 from database import get_thumbnail, increment_usage, is_banned, add_user
-
+# CantarellaBots
+# Don't Remove Credit
+# Telegram Channel @CantarellaBots
+#Supoort group @rexbotschat
 router = Router()
+# CantarellaBots
+# Don't Remove Credit
+# Telegram Channel @CantarellaBots
+#Supoort group @rexbotschat
 
 def small_caps(text: str) -> str:
     """Convert text to small caps unicode."""
@@ -17,6 +32,10 @@ def small_caps(text: str) -> str:
         else:
             result += char
     return result
+# CantarellaBots
+# Don't Remove Credit
+# Telegram Channel @CantarellaBots
+#Supoort group @rexbotschat
 
 @router.message(F.video)
 async def handle_video(message: types.Message, bot: Bot):
@@ -32,27 +51,7 @@ async def handle_video(message: types.Message, bot: Bot):
     
     # Add/update user
     await add_user(user_id, username, first_name)
-    # --- START: NEW PREMIUM/FREE LIMIT LOGIC ---
-    user_data = await get_user(user_id) # Fetch latest data
-    is_premium = user_data.get("is_premium", False) if user_data else False
-    used_count = user_data.get("videos_used", 0) if user_data else 0
-
-    if not is_premium and used_count >= 40:
-        limit_text = (
-            f"⚠️ <b>{small_caps('Daily Limit Reached!')}</b>\n"
-            f"▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n\n"
-            f"👤 <b>{small_caps('Operator:')}</b> <code>{first_name}</code>\n"
-            f"📊 <b>{small_caps('Usage:')}</b> <code>{used_count}/40</code>\n\n"
-            f"<blockquote>{small_caps('Your free limit is over. Upgrade to Premium for unlimited access.')}</blockquote>"
-        )
-        # Inline button for /plan command
-        plan_keyboard = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="💎 View Premium Plans", callback_data="view_plans")],
-            [InlineKeyboardButton(text="⚙️ Settings", callback_data="settings")]
-        ])
-        await message.answer(limit_text, parse_mode="HTML", reply_markup=plan_keyboard)
-        return # Processing stop kar dega
-    # --- END: NEW PREMIUM/FREE LIMIT LOGIC ---
+    
     video = message.video
     
     # Keep ORIGINAL caption - no modification
@@ -100,3 +99,10 @@ async def handle_video(message: types.Message, bot: Bot):
             parse_mode="HTML",
             reply_markup=keyboard
         )
+# CantarellaBots
+# Don't Remove Credit
+# Telegram Channel @CantarellaBots
+#Supoort group @rexbotschat# CantarellaBots
+# Don't Remove Credit
+# Telegram Channel @CantarellaBots
+#Supoort group @rexbotschat
