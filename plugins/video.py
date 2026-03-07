@@ -3,6 +3,7 @@ from aiogram import Router, types, F, Bot
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from config import LOG_CHANNEL
 from database import get_thumbnail, increment_usage, is_banned, add_user, get_user
+import logging
 
 router = Router()
 
@@ -35,7 +36,7 @@ async def handle_video(message: types.Message, bot: Bot):
     await add_user(user_id, username, first_name)
     user_data = await get_user(user_id)
     
-    # 3. Premium & Limit Logic (The "Ghost OS" way)
+    # 3. Premium & Limit Logic (Ghost OS Style)
     is_premium = user_data.get("is_premium", False) if user_data else False
     used_count = user_data.get("videos_used", 0) if user_data else 0
     
@@ -44,7 +45,7 @@ async def handle_video(message: types.Message, bot: Bot):
         [InlineKeyboardButton(text="⚙️ Settings", callback_data="settings")]
     ])
 
-    # Check Limit for Free Users
+    # Check Limit for Free Users (40 limit)
     if not is_premium and used_count >= 40:
         limit_reached_text = (
             f"⚠️ <b>{small_caps('Daily Limit Reached!')}</b>\n"
@@ -63,26 +64,36 @@ async def handle_video(message: types.Message, bot: Bot):
     thumb_file_id = await get_thumbnail(user_id)
     
     if thumb_file_id:
-        # Increment usage in database
-        await increment_usage(user_id)
-        
-        # UI Feedback (Optional: "Processing..." message delete kar sakte ho)
+        # Status Message
         status_msg = await message.answer(f"⚡ <b>{small_caps('Injecting Thumbnail...')}</b>", parse_mode="HTML")
 
         try:
-            # Send video with custom cover
+            # Send video with custom cover (Using thumbnail parameter for aiogram v3)
             await bot.send_video(
                 chat_id=message.chat.id,
                 video=video.file_id,
                 caption=caption,
-                thumbnail=thumb_file_id, # aiogram v3 uses 'thumbnail' instead of 'cover'
+                thumbnail=thumb_file_id,
+                width=video.width,
+                height=video.height,
+                duration=video.duration,
                 reply_markup=keyboard
             )
+            
+            # Success: Increment usage only if sent successfully
+            await increment_usage(user_id)
             await status_msg.delete()
+
         except Exception as e:
-            await status_msg.edit_text(f"❌ <b>{small_caps('Error during processing')}</b>", parse_mode="HTML")
-            print(f"Error: {e}")
-            return
+            logging.error(f"Processing Error: {e}")
+            # Fallback if thumbnail is invalid
+            await status_msg.edit_text(f"⚠️ {small_caps('Thumbnail invalid. Sending original...')}")
+            await bot.send_video(
+                chat_id=message.chat.id,
+                video=video.file_id,
+                caption=caption,
+                reply_markup=keyboard
+            )
         
         # Log to log channel
         if LOG_CHANNEL:
@@ -101,7 +112,7 @@ async def handle_video(message: types.Message, bot: Bot):
             except Exception:
                 pass
     else:
-        # No thumbnail set
+        # No thumbnail set warning
         await message.answer(
             f"<b>⚠️ {small_caps('No thumbnail set!')}</b>\n\n"
             f"<blockquote>{small_caps('Please set a thumbnail first in settings to process videos.')}</blockquote>",
